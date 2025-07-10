@@ -1,0 +1,414 @@
+---
+title: "Free_recombination"
+output: html_document
+date: "2025-06-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N100"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 0.61255
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ylab("dN/dS") +
+  ylim(0, 2) +
+  xlab("Branches ordered by number of generations") +
+  labs(title = "Boxplot dN/dS for 20 simulations (N = 100)")
+
+# Affichage
+print(p)
+```
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+reference <- 0.641439
+interval <- c(0.85, 1.15) * reference
+
+# Dossier pour N = 100
+N <- 100
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N100"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et calcul du dN/dS
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds))
+
+# Sélection des valeurs dans l’intervalle
+filtered_dnds <- combined_data %>%
+  filter(dnds >= interval[1], dnds <= interval[2]) %>%
+  pull(dnds)
+
+# Nouvelle ligne à ajouter
+new_row <- tibble(
+  N = N,
+  mean_dnds_in_interval = mean(filtered_dnds, na.rm = TRUE)
+)
+
+# Fichier de sortie
+csv_output <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/Mean_dN_dS.csv"
+
+# Ajouter la ligne au fichier s’il existe, sinon le créer
+if (file.exists(csv_output)) {
+  existing <- read_csv(csv_output, col_types = cols())
+  updated <- bind_rows(existing, new_row)
+  write_csv(updated, csv_output)
+} else {
+  write_csv(new_row, csv_output)
+}
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N250"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 0.61255
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ylab("dN/dS") +
+  ylim(0, 2) +
+  xlab("Branches ordered by number of generations") +
+  labs(title = "Boxplot dN/dS for 20 simulations (N = 250)")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+reference <- 0.61255
+interval <- c(0.85, 1.15) * reference
+
+# Dossier pour N = 100
+N <- 250
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Low_recombination/N250"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et calcul du dN/dS
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds))
+
+# Sélection des valeurs dans l’intervalle
+filtered_dnds <- combined_data %>%
+  filter(dnds >= interval[1], dnds <= interval[2]) %>%
+  pull(dnds)
+
+# Nouvelle ligne à ajouter
+new_row <- tibble(
+  N = N,
+  mean_dnds_in_interval = mean(filtered_dnds, na.rm = TRUE)
+)
+
+# Fichier de sortie
+csv_output <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/Mean_dN_dS.csv"
+
+# Ajouter la ligne au fichier s’il existe, sinon le créer
+if (file.exists(csv_output)) {
+  existing <- read_csv(csv_output, col_types = cols())
+  updated <- bind_rows(existing, new_row)
+  write_csv(updated, csv_output)
+} else {
+  write_csv(new_row, csv_output)
+}
+```
+
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N500"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 0.509405
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ylab("dN/dS") +
+  ylim(0, 2) +
+  xlab("Branches length (in number of generations") +
+  labs(title = "Boxplot dN/dS for 20 simulations (N = 500)")
+```
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N1000"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 0.236966
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ylab("dN/dS") +
+  ylim(0, 2) +
+  xlab("Branches length (in number of generations)") +
+  labs(title = "Boxplot dN/dS for 20 simulations (N = 1000)")
+```
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N2500"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 0.00802157
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  coord_cartesian(ylim = c(0, 0.3)) +  # Pour éviter les problèmes de clipping
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  labs(
+    x = "Branches length (in number of generations)",
+    y = expression(d[N]/d[S]),
+    coord_cartesian(ylim = c(0, 0.2)),
+  )
+
+```
+
+```{r pressure, echo=FALSE}
+library(tidyverse)
+
+mu <- 1e-6
+
+folder <- "/home/alafitte/Internship/Rapport de stage/Données/Population_size/Free_recombination/N5000"
+files <- file.path(folder, sprintf("resultats_final_%02d.csv", 1:20))
+
+# Lecture et traitement des données
+combined_data <- files %>%
+  map_dfr(~ read_csv(.x, col_types = cols()) %>%
+            select(species, dN, dS, Nw_sum.1, Sw_sum.1, branch_length = 13)) %>%
+  filter(!is.na(dN), !is.na(dS), !is.na(Nw_sum.1), !is.na(Sw_sum.1), !is.na(branch_length)) %>%
+  mutate(
+    generations = branch_length / mu,
+    dnds = (dN / Nw_sum.1) / (dS / Sw_sum.1)
+  ) %>%
+  filter(is.finite(dnds), is.finite(generations)) %>%
+  mutate(species = fct_reorder(species, generations))  # Réordonne les espèces selon les générations
+
+# Calcul des moyennes et attribution des couleurs
+reference <- 3.88478e-05
+lower <- 0.85 * reference
+upper <- 1.15 * reference
+
+mean_points <- combined_data %>%
+  group_by(species) %>%
+  summarise(mean_dnds = mean(dnds), .groups = "drop") %>%
+  mutate(color = if_else(mean_dnds >= lower & mean_dnds <= upper, "red", "black"))
+
+# Tracé du boxplot avec moyenne colorée
+ggplot(combined_data, aes(x = species, y = dnds)) +
+  geom_boxplot(fill = "skyblue", alpha = 0.7, outlier.size = 1) +
+  geom_hline(yintercept = reference, linetype = "solid", color = "darkred", size = 1) +
+  geom_point(data = mean_points, aes(x = species, y = mean_dnds, color = color),
+             shape = 18, size = 3, show.legend = FALSE) +
+  scale_color_identity() +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ylab("dN/dS") +
+  xlab("Branches length (in number of generations)") +
+  labs(title = "Boxplot dN/dS for 20 simulations (N = 5000)")
+```
+
+```{r pressure, echo=FALSE}
+
+```
